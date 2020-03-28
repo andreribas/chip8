@@ -1,0 +1,26 @@
+{
+  "name": "chip8",
+  "version": "0.0.1",
+  "description": "A simple chip8 emulator",
+  "main": "app.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/andreribas/chip8.git"
+  },
+  "keywords": [
+    "chip8",
+    "emulator"
+  ],
+  "author": "André Ribas",
+  "license": "BSD-2-Clause",
+  "bugs": {
+    "url": "https://github.com/andreribas/chip8/issues"
+  },
+  "homepage": "https://github.com/andreribas/chip8#readme",
+  "devDependencies": {
+    "mocha": "^7.1.1"
+  }
+}
