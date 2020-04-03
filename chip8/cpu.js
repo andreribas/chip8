@@ -1,4 +1,4 @@
-exports.buildInitialCpu = function () {
+export function buildInitialCpu() {
     return {
         V: new Uint8Array(16),      // General Registers: 8 bits
         I: 0,                       // Memory Address: 16 bits
@@ -8,46 +8,8 @@ exports.buildInitialCpu = function () {
     };
 };
 
-exports.buildInitialGfx = function () {
-    return {
-        state: new Uint8Array(8 * 32), // 8 bytes (64 bits) x 32 positions
-        clear() {
-            this.state.fill(0);
-        },
-        setByte(x, y, byte) {
-            let changed = false;
-
-            const [first, second] = this.splitByte(x, byte);
-            const [first_pos, second_pos] = this.posFromXY(x, y);
-
-            changed = changed || (this.state[first_pos] & first) !== 0x00;
-            changed = changed || (this.state[second_pos] & second) !== 0x00;
-
-            this.state[first_pos] ^= first;
-            this.state[second_pos] ^= second;
-
-            return changed ? 1 : 0;
-        },
-        splitByte(x_pos, byte) {
-            let first_part_size = x_pos % 8;
-
-            let first_part = byte >> first_part_size;
-            let second_part = (byte << (8 - first_part_size)) & 0xFF;
-
-            return [first_part, second_part];
-        },
-        posFromXY(x, y) {
-            y = y % 32;
-            let first_x = Math.floor(x / 8) % 8;
-            let second_x = (Math.floor(x / 8) + 1) % 8;
-
-            return [y * 8 + first_x, y * 8 + second_x];
-        }
-    };
-};
-
 // http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#3.1
-exports.execOpcode = function (opcode, cpu, memory, gfx) {
+export function execOpcode(opcode, cpu, memory, gfx) {
     const nnn = opcode & 0x0FFF;
     const kk = opcode & 0x00FF;
     const x = (opcode & 0x0F00) >> 8;
@@ -299,7 +261,7 @@ exports.execOpcode = function (opcode, cpu, memory, gfx) {
             // and section 2.4, Display, for more information on the Chip-8
             // screen and sprites.
             for (let i = 0; i < n; i++)
-                cpu.V[0xF] |= gfx.setByte(cpu.V[x], cpu.V[y], memory[cpu.I + i]);
+                cpu.V[0xF] |= gfx.setByte(cpu.V[x], cpu.V[y] + i, memory[cpu.I + i]);
             break;
 
         case 0xE:
