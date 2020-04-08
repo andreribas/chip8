@@ -1,4 +1,4 @@
-exports.buildInitialCpu = function () {
+export function buildInitialCpu () {
     return {
         V: new Uint8Array(16),      // General Registers: 8 bits
         I: 0,                       // Memory Address: 16 bits
@@ -6,9 +6,9 @@ exports.buildInitialCpu = function () {
         SP: 0,                      // Stack Pointer: 16 bits
         stack: new Uint16Array(16), // Stack
     };
-};
+}
 
-exports.buildInitialGfx = function () {
+export function buildInitialGfx () {
     return {
         state: new Uint8Array(8 * 32), // 8 bytes (64 bits) x 32 positions
         clear() {
@@ -44,10 +44,10 @@ exports.buildInitialGfx = function () {
             return [y * 8 + first_x, y * 8 + second_x];
         }
     };
-};
+}
 
 // http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#3.1
-exports.execOpcode = function (opcode, cpu, memory, gfx) {
+export function execOpcode (opcode, cpu, memory, gfx) {
     const nnn = opcode & 0x0FFF;
     const kk = opcode & 0x00FF;
     const x = (opcode & 0x0F00) >> 8;
@@ -319,4 +319,4 @@ exports.execOpcode = function (opcode, cpu, memory, gfx) {
             // is currently in the up position, PC is increased by 2.
 
     }
-};
+}
