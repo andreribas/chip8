@@ -1,4 +1,4 @@
-exports.translateOpcode = function(opcode) {
+export function translateOpcode (opcode) {
     const nnn = opcode & 0x0FFF;
     const kk = opcode & 0x00FF;
     const x = (opcode & 0x0F00) >> 8;
@@ -62,4 +62,4 @@ exports.translateOpcode = function(opcode) {
             }
         default: return `${hex(opcode, 4)}: `;
     }
-};
+}
