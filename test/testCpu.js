@@ -1,23 +1,12 @@
-const chip8 = require('../chip8/cpu');
-const assert = require('assert');
+import { buildInitialCpu, execOpcode, buildInitialGfx} from "../chip8/cpu";
+import assert from "assert";
 
 describe('Cpu Opcode 0x1nnn', function() {
     it('Should set PC to nnn', function () {
-        const cpu = chip8.buildInitialCpu();
+        const cpu = buildInitialCpu();
         for (let nnn = 0x0000; nnn <= 0x0FFF; nnn++) {
             const opcode = 0x1000 + nnn;
-            chip8.execOpcode(opcode, cpu);
-            assert.equal(nnn, cpu.PC);
-        }
-    });
-});
-
-describe('Cpu Opcode 0x2nnn', function() {
-    it('0x2nnn - Should call subroutine at nnn', function() {
-        const cpu =  chip8.buildInitialCpu();
-        for (let nnn = 0x1000; nnn <= 0x1FFF; nnn++) {
-            const opcode = 0x1000 + nnn;
-            chip8.execOpcode(opcode, cpu);
+            execOpcode(opcode, cpu);
             assert.equal(nnn, cpu.PC);
         }
     });
@@ -26,7 +15,7 @@ describe('Cpu Opcode 0x2nnn', function() {
 describe('Gfx', function() {
     it('split byte into 2 adjacent bytes based on x position', function() {
         let first, second;
-        let gfx = chip8.buildInitialGfx();
+        let gfx = buildInitialGfx();
 
         const test_cases = [
             {'byte': 0xFF, 'x': 0, 'expected_first': 0xFF, 'expected_second': 0x00},
@@ -46,7 +35,7 @@ describe('Gfx', function() {
     });
 
     it('Byte position from X and Y coordinates', function() {
-        let gfx = chip8.buildInitialGfx();
+        let gfx = buildInitialGfx();
 
         const test_cases = [
             {'x': 0, 'y': 0, 'expected': {'first': 0, 'second': 1}},
@@ -69,14 +58,14 @@ describe('Gfx', function() {
         ];
 
         for (const test_case of test_cases) {
-            [first_pos, second_pos] = gfx.posFromXY(test_case.x, test_case.y);
+            let [first_pos, second_pos] = gfx.posFromXY(test_case.x, test_case.y);
             assert.equal(first_pos, test_case.expected.first);
             assert.equal(second_pos, test_case.expected.second);
         }
     });
 
     it('Gfx setByte', function() {
-        let gfx = chip8.buildInitialGfx();
+        let gfx = buildInitialGfx();
         let changed;
 
         changed = gfx.setByte(4, 0, 0xFF);
