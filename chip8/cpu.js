@@ -1,4 +1,4 @@
-export function buildInitialCpu() {
+export function buildInitialCpu () {
     return {
         V: new Uint8Array(16),      // General Registers: 8 bits
         I: 0,                       // Memory Address: 16 bits

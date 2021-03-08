@@ -4,7 +4,7 @@
   "description": "A simple chip8 emulator",
   "main": "app.js",
   "scripts": {
-    "test": "mocha"
+    "test": "mocha --require @babel/register"
   },
   "repository": {
     "type": "git",
@@ -21,6 +21,10 @@
   },
   "homepage": "https://github.com/andreribas/chip8#readme",
   "devDependencies": {
+    "@babel/cli": "^7.8.4",
+    "@babel/core": "^7.9.0",
+    "@babel/preset-env": "^7.9.5",
+    "@babel/register": "^7.9.0",
     "mocha": "^7.1.1"
   }
 }
