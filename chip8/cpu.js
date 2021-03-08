@@ -8,46 +8,70 @@ export function buildInitialCpu () {
     };
 }
 
-export function buildInitialGfx () {
-    return {
-        state: new Uint8Array(8 * 32), // 8 bytes (64 bits) x 32 positions
-        clear() {
-            this.state.fill(0);
-        },
-        setByte(x, y, byte) {
-            let changed = false;
+export function decompileOpcode(opcode) {
+    const nnn = opcode & 0x0FFF;
+    const kk = opcode & 0x00FF;
+    const x = (opcode & 0x0F00) >> 8;
+    const y = (opcode & 0x00F0) >> 4;
+    const n = opcode & 0x000F;
 
-            const [first, second] = this.splitByte(x, byte);
-            const [first_pos, second_pos] = this.posFromXY(x, y);
-
-            changed = changed || (this.state[first_pos] & first) !== 0x00;
-            changed = changed || (this.state[second_pos] & second) !== 0x00;
-
-            this.state[first_pos] ^= first;
-            this.state[second_pos] ^= second;
-
-            return changed ? 1 : 0;
-        },
-        splitByte(x_pos, byte) {
-            let first_part_size = x_pos % 8;
-
-            let first_part = byte >> first_part_size;
-            let second_part = (byte << (8 - first_part_size)) & 0xFF;
-
-            return [first_part, second_part];
-        },
-        posFromXY(x, y) {
-            y = y % 32;
-            let first_x = Math.floor(x / 8) % 8;
-            let second_x = (Math.floor(x / 8) + 1) % 8;
-
-            return [y * 8 + first_x, y * 8 + second_x];
-        }
-    };
+    switch (opcode & 0xF000) {
+        case 0x0000:
+            switch (nnn) {
+                case 0x0E0: return `00E0: CLS`;
+                case 0x0EE: return `00EE: RET`;
+                default: return `${opcode.toString(16)}: `;
+            }
+        case 0x1000: return `${opcode.toString(16)}: JP 0x${nnn.toString(16)}`;
+        case 0x2000: return `${opcode.toString(16)}: CALL 0x${nnn.toString(16)}`;
+        case 0x3000: return `${opcode.toString(16)}: SE V${x}, 0x${kk.toString(16)}`;
+        case 0x4000: return `${opcode.toString(16)}: SNE V${x}, 0x${kk.toString(16)}`;
+        case 0x5000: return `${opcode.toString(16)}: SE V${x}, V${y}`;
+        case 0x6000: return `${opcode.toString(16)}: LD V${x}, 0x${kk.toString(16)}`;
+        case 0x7000: return `${opcode.toString(16)}: ADD V${x}, 0x${kk.toString(16)}`;
+        case 0x8000:
+            switch (n) {
+                case 0x0: return `${opcode.toString(16)}: LD V${x}, V${y}`;
+                case 0x1: return `${opcode.toString(16)}: OR V${x}, V${y}`;
+                case 0x2: return `${opcode.toString(16)}: AND V${x}, V${y}`;
+                case 0x3: return `${opcode.toString(16)}: XOR V${x}, V${y}`;
+                case 0x4: return `${opcode.toString(16)}: ADD V${x}, V${y}`;
+                case 0x5: return `${opcode.toString(16)}: SUB V${x}, V${y}`;
+                case 0x6: return `${opcode.toString(16)}: SHR V${x} {, V${y}}`;
+                case 0x7: return `${opcode.toString(16)}: SUBN V${x}, V${y}`;
+                case 0xE: return `${opcode.toString(16)}: SHL V${x} {, V${y}}`;
+                default: return `${opcode.toString(16)}: `;
+            }
+        case 0x9000: return `${opcode.toString(16)}: SNE V${x}, V${y}`;
+        case 0xA000: return `${opcode.toString(16)}: LD I, 0x${nnn.toString(16)}`;
+        case 0xB000: return `${opcode.toString(16)}: JP V0, 0x${nnn.toString(16)}`;
+        case 0xC000: return `${opcode.toString(16)}: RND V${x}, 0x${kk.toString(16)}`;
+        case 0xD000: return `${opcode.toString(16)}: DRW V${x}, V${y}, ${n}`;
+        case 0xE000:
+            switch (kk) {
+                case 0x9E: return `${opcode.toString(16)}: SKP V${x}`;
+                case 0xA1: return `${opcode.toString(16)}: SKNP V${x}`;
+                default: return `${opcode.toString(16)}: `;
+            }
+        case 0xF000:
+            switch (kk) {
+                case 0x07: return `${opcode.toString(16)}: LD V${x}, DT`;
+                case 0x0A: return `${opcode.toString(16)}: LD V${x}, K`;
+                case 0x15: return `${opcode.toString(16)}: LD DT, V${x}`;
+                case 0x18: return `${opcode.toString(16)}: LD ST, V${x}`;
+                case 0x1E: return `${opcode.toString(16)}: ADD I, V${x}`;
+                case 0x29: return `${opcode.toString(16)}: ADD F, V${x}`;
+                case 0x33: return `${opcode.toString(16)}: LD B, V${x}`;
+                case 0x55: return `${opcode.toString(16)}: LD [I], V${x}`;
+                case 0x65: return `${opcode.toString(16)}: LD V${x}, [I]`;
+                default: return `${opcode.toString(16)}: `;
+            }
+        default: return `${opcode.toString(16)}: `;
+    }
 }
 
 // http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#3.1
-export function execOpcode (opcode, cpu, memory, gfx) {
+export function execOpcode(opcode, cpu, memory, gfx, keyboard) {
     const nnn = opcode & 0x0FFF;
     const kk = opcode & 0x00FF;
     const x = (opcode & 0x0F00) >> 8;
@@ -223,7 +247,7 @@ export function execOpcode (opcode, cpu, memory, gfx) {
                     //
                     // If the least-significant bit of Vx is 1, then VF is set to 1,
                     // otherwise 0. Then Vx is divided by 2.
-                    cpu.V[0xF] = cpu.v[x] & 0x01;
+                    cpu.V[0xF] = cpu.V[x] & 0x01;
                     cpu.V[x] = cpu.V[x] >> 1;
                     break;
 
@@ -234,7 +258,7 @@ export function execOpcode (opcode, cpu, memory, gfx) {
                     // If Vy > Vx, then VF is set to 1, otherwise 0.
                     // Then Vx is subtracted from Vy, and the results stored in Vx.
                     cpu.V[0xF] = cpu.V[y] > cpu.V[x] ? 1 : 0;
-                    cpu.V[y] = cpu.V[y] - cpu.V[x];
+                    cpu.V[x] = cpu.V[y] - cpu.V[x];
                     break;
 
                 case 0xE:
@@ -299,7 +323,7 @@ export function execOpcode (opcode, cpu, memory, gfx) {
             // and section 2.4, Display, for more information on the Chip-8
             // screen and sprites.
             for (let i = 0; i < n; i++)
-                cpu.V[0xF] |= gfx.setByte(cpu.V[x], cpu.V[y], memory[cpu.I + i]);
+                cpu.V[0xF] |= gfx.setByte(cpu.V[x], cpu.V[y] + i, memory[cpu.I + i]);
             break;
 
         case 0xE:
@@ -308,8 +332,10 @@ export function execOpcode (opcode, cpu, memory, gfx) {
             //
             // Checks the keyboard, and if the key corresponding to the value of Vx
             // is currently in the down position, PC is increased by 2.
-            if (n === 0xE) {
-
+            if (kk === 0x9E) {
+                if (keyboard.pressed(cpu.V[x]))
+                    cpu.PC += 2;
+                break;
             }
 
             // ExA1 - SKNP Vx
@@ -317,6 +343,11 @@ export function execOpcode (opcode, cpu, memory, gfx) {
             //
             // Checks the keyboard, and if the key corresponding to the value of Vx
             // is currently in the up position, PC is increased by 2.
+            if (kk === 0xA1) {
+                if ( ! keyboard.pressed(cpu.V[x]))
+                    cpu.PC += 2;
+                break;
+            }
 
     }
 }
